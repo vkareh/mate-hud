@@ -22,5 +22,14 @@
         Set to 0 to disable the timeout.
       </description>
     </key>
+    <key type="d" name="transparency">
+      <default>1.0</default>
+      <range min="0.0" max="1.0"/>
+      <summary>Background transparency</summary>
+      <description>
+        This determines the opacity level for the HUD background.
+        Set to 0 for full transparency; set to 1 for no transparency.
+      </description>
+    </key>
   </schema>
 </schemalist>

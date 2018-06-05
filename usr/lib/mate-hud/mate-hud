@@ -93,6 +93,13 @@ def get_number(schema, path, key):
         settings = Gio.Settings.new(schema)
     return settings.get_int(key)
 
+def get_double(schema, path, key):
+    if path:
+        settings = Gio.Settings.new_with_path(schema, path)
+    else:
+        settings = Gio.Settings.new(schema)
+    return settings.get_double(key)
+
 def get_list(schema, path, key):
     if path:
         settings = Gio.Settings.new_with_path(schema, path)
@@ -139,19 +146,20 @@ def terminate_appmenu_registrar():
         if process_running('appmenu-registrar') and not process_running(applet):
             kill_process('appmenu-registrar')
 
-def rgba_to_hex(color):
+def rgba_to_hex(color, alpha = 1.0):
    """
    Return hexadecimal string for :class:`Gdk.RGBA` `color`.
    """
-   return "#{0:02x}{1:02x}{2:02x}".format(
-                                    int(color.red   * 255),
-                                    int(color.green * 255),
-                                    int(color.blue  * 255))
+   return "#{0:02x}{1:02x}{2:02x}{3:02x}".format(
+                                           int(alpha       * 255),
+                                           int(color.red   * 255),
+                                           int(color.green * 255),
+                                           int(color.blue  * 255))
 
-def get_color(style_context, preferred_color, fallback_color):
-    color = rgba_to_hex(style_context.lookup_color(preferred_color)[1])
-    if color == '#000000':
-        color = rgba_to_hex(style_context.lookup_color(fallback_color)[1])
+def get_color(style_context, preferred_color, fallback_color, alpha = 1.0):
+    color = rgba_to_hex(style_context.lookup_color(preferred_color)[1], alpha)
+    if color[-6:] == '000000':
+        color = rgba_to_hex(style_context.lookup_color(fallback_color)[1], alpha)
     return color
 
 def get_menu(menuKeys):
@@ -172,7 +180,10 @@ def get_menu(menuKeys):
     window = Gtk.Window()
     style_context = window.get_style_context()
 
-    bg_color = get_color(style_context, 'dark_bg_color', 'theme_bg_color')
+    # Get the current transparency setting
+    alpha = get_double('org.mate.hud', None, 'transparency')
+
+    bg_color = get_color(style_context, 'dark_bg_color', 'theme_bg_color', alpha)
     fg_color = get_color(style_context, 'dark_fg_color', 'theme_fg_color')
     borders = get_color(style_context, 'borders', 'border_color')
 
@@ -180,11 +191,11 @@ def get_menu(menuKeys):
     logging.debug('fg_color: %s', str(fg_color))
     logging.debug('borders: %s', str(borders))
 
-    selected_bg_color = rgba_to_hex(style_context.lookup_color('theme_selected_bg_color')[1])
+    selected_bg_color = rgba_to_hex(style_context.lookup_color('theme_selected_bg_color')[1], alpha)
     selected_fg_color = rgba_to_hex(style_context.lookup_color('theme_selected_fg_color')[1])
-    error_bg_color = rgba_to_hex(style_context.lookup_color('error_bg_color')[1])
+    error_bg_color = rgba_to_hex(style_context.lookup_color('error_bg_color')[1], alpha)
     error_fg_color = rgba_to_hex(style_context.lookup_color('error_fg_color')[1])
-    info_bg_color = rgba_to_hex(style_context.lookup_color('info_bg_color')[1])
+    info_bg_color = rgba_to_hex(style_context.lookup_color('info_bg_color')[1], alpha)
     info_fg_color = rgba_to_hex(style_context.lookup_color('info_fg_color')[1])
     text_color = rgba_to_hex(style_context.lookup_color('theme_text_color')[1])
 
@@ -220,6 +231,7 @@ def get_menu(menuKeys):
                                  '-kb-cancel', 'Escape' + shortcut,
                                  '-sync', # withhold display until menu entries are ready
                                  '-monitor', '-2', # show in the current application
+                                 '-fake-transparency', # this enables transparency in non-composited environments
                                  '-color-enabled',
                                  '-color-window', bg_color +", " + borders + ", " + borders,
                                  '-color-normal', bg_color +", " + fg_color + ", " + bg_color + ", " + selected_bg_color + ", " + selected_fg_color,
